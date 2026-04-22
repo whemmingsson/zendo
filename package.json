@@ -46,6 +46,7 @@
       "supabase": "*"
     },
     "onlyBuiltDependencies": [
+      "msw",
       "supabase"
     ]
   }

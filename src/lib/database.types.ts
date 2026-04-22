@@ -14,11 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      Statuses: {
+        Row: {
+          created_at: string
+          id: number
+          label: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          label: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          label?: string
+        }
+        Relationships: []
+      }
       Tasks: {
         Row: {
           created_at: string
           description: string | null
           id: number
+          status_id: number | null
           title: string
           user_id: string
         }
@@ -26,6 +45,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: number
+          status_id?: number | null
           title: string
           user_id: string
         }
@@ -33,10 +53,19 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: number
+          status_id?: number | null
           title?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "Tasks_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "Statuses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
