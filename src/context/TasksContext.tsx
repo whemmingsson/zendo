@@ -1,5 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { createTask, deleteTask, getUserTasks } from "../lib/taskService";
+import {
+  createTask,
+  deleteTask,
+  getUserTasks,
+  updateTaskStatus,
+  withRecomputedPriorities,
+} from "../lib/taskService";
 import type { TaskWithStatus } from "../lib/taskService";
 import { getCachedStatuses } from "../lib/statusService";
 import type { Status } from "../lib/statusService";
@@ -22,6 +28,11 @@ type TasksContextValue = {
   requestDeleteTask: (task: TaskWithStatus) => void;
   cancelDeleteTask: () => void;
   confirmDeleteTask: () => Promise<void>;
+  reorderTasks: (nextTasks: TaskWithStatus[]) => void;
+  moveTaskToStatus: (
+    taskId: number,
+    statusId: number | null,
+  ) => Promise<boolean>;
 };
 
 const TasksContext = createContext<TasksContextValue | undefined>(undefined);
@@ -47,7 +58,7 @@ export function TasksProvider({ children }: TasksProviderProps) {
           getCachedStatuses(),
         ]);
 
-        setTasks(userTasks);
+        setTasks(withRecomputedPriorities(userTasks));
         setStatuses(allStatuses);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load tasks");
@@ -76,7 +87,7 @@ export function TasksProvider({ children }: TasksProviderProps) {
       );
 
       if (newTask) {
-        setTasks((prev) => [newTask, ...prev]);
+        setTasks((prev) => withRecomputedPriorities([newTask, ...prev]));
       }
 
       return !!newTask;
@@ -104,11 +115,41 @@ export function TasksProvider({ children }: TasksProviderProps) {
 
     try {
       await deleteTask(taskToDelete.id);
-      setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id));
+      setTasks((prev) =>
+        withRecomputedPriorities(prev.filter((t) => t.id !== taskToDelete.id)),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete task");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const reorderTasks = (nextTasks: TaskWithStatus[]) => {
+    setTasks(withRecomputedPriorities(nextTasks));
+  };
+
+  const moveTaskToStatus = async (
+    taskId: number,
+    statusId: number | null,
+  ): Promise<boolean> => {
+    setError(null);
+
+    try {
+      const updatedTask = await updateTaskStatus(taskId, statusId);
+      setTasks((prev) =>
+        withRecomputedPriorities(
+          prev.map((task) =>
+            task.id === taskId ? { ...task, status: updatedTask.status } : task,
+          ),
+        ),
+      );
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update task status",
+      );
+      return false;
     }
   };
 
@@ -126,6 +167,8 @@ export function TasksProvider({ children }: TasksProviderProps) {
         requestDeleteTask,
         cancelDeleteTask,
         confirmDeleteTask,
+        reorderTasks,
+        moveTaskToStatus,
       }}
     >
       {children}

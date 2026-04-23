@@ -8,24 +8,48 @@ type TaskInsert = TablesInsert<"Tasks">;
 
 export type TaskWithStatus = Omit<Task, "status_id"> & {
   status: Status | null;
+  priority: number;
 };
 
-function enrichWithStatus(task: Task, statuses: Status[]): TaskWithStatus {
+const enrichWithStatus = (task: Task, statuses: Status[]): TaskWithStatus => {
   const { status_id, ...rest } = task;
   return {
     ...rest,
     status: statuses.find((s) => s.id === status_id) ?? null,
+    priority: 0,
   };
-}
+};
+
+const getStatusKey = (task: TaskWithStatus): string => {
+  return task.status ? String(task.status.id) : "unassigned";
+};
+
+export const withRecomputedPriorities = (
+  tasks: TaskWithStatus[],
+): TaskWithStatus[] => {
+  const statusCounters = new Map<string, number>();
+
+  return tasks.map((task) => {
+    const key = getStatusKey(task);
+    const nextPriority = statusCounters.get(key) ?? 0;
+
+    statusCounters.set(key, nextPriority + 1);
+
+    return {
+      ...task,
+      priority: nextPriority,
+    };
+  });
+};
 
 /**
  * Create a new task for the authenticated user
  */
-export async function createTask(
+export const createTask = async (
   title: string,
   description?: string,
   statusId?: number,
-): Promise<TaskWithStatus | null> {
+): Promise<TaskWithStatus | null> => {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -53,12 +77,12 @@ export async function createTask(
 
   const statuses = await getCachedStatuses();
   return enrichWithStatus(data, statuses);
-}
+};
 
 /**
  * Get all tasks created by the authenticated user
  */
-export async function getUserTasks(): Promise<TaskWithStatus[]> {
+export const getUserTasks = async (): Promise<TaskWithStatus[]> => {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -80,13 +104,69 @@ export async function getUserTasks(): Promise<TaskWithStatus[]> {
     throw new Error(`Failed to fetch tasks: ${error.message}`);
   }
 
-  return data.map((task) => enrichWithStatus(task, statuses));
-}
+  return withRecomputedPriorities(
+    data.map((task) => enrichWithStatus(task, statuses)),
+  );
+};
+
+/**
+ * Update task status by ID (only if it belongs to the authenticated user)
+ */
+export const updateTaskStatus = async (
+  taskId: number,
+  statusId: number | null,
+): Promise<TaskWithStatus> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("User must be authenticated to update task status");
+  }
+
+  const { data, error } = await supabase
+    .from("Tasks")
+    .update({ status_id: statusId })
+    .eq("id", taskId)
+    .eq("user_id", user.id)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to update task status: ${error.message}`);
+  }
+
+  if (!data) {
+    const { data: existingTask, error: existingTaskError } = await supabase
+      .from("Tasks")
+      .select("id")
+      .eq("id", taskId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existingTaskError) {
+      throw new Error(
+        `Failed to update task status: ${existingTaskError.message}`,
+      );
+    }
+
+    if (!existingTask) {
+      throw new Error("Failed to update task status: task not found");
+    }
+
+    throw new Error(
+      "Failed to update task status: update was rejected (check Supabase UPDATE policy for Tasks)",
+    );
+  }
+
+  const statuses = await getCachedStatuses();
+  return enrichWithStatus(data, statuses);
+};
 
 /**
  * Delete a task by ID (only if it belongs to the authenticated user)
  */
-export async function deleteTask(taskId: number): Promise<void> {
+export const deleteTask = async (taskId: number): Promise<void> => {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -104,4 +184,4 @@ export async function deleteTask(taskId: number): Promise<void> {
   if (error) {
     throw new Error(`Failed to delete task: ${error.message}`);
   }
-}
+};

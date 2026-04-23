@@ -4,6 +4,7 @@ import "./App.css";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import { supabase } from "./lib/supabase";
+import { BoardPage } from "./pages/BoardPage";
 
 export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
@@ -42,6 +43,12 @@ export default function App() {
           path="/"
           element={
             isAuthenticated ? <HomePage /> : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/board"
+          element={
+            isAuthenticated ? <BoardPage /> : <Navigate to="/login" replace />
           }
         />
         <Route
