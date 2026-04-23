@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Status } from "../../lib/statusService";
+import { useTasks } from "../../hooks/useTasks";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -18,23 +18,8 @@ import {
   CardTitle,
 } from "../ui/card";
 
-type CreateTaskFormProps = {
-  statuses: Status[];
-  loading: boolean;
-  error: string | null;
-  onCreateTask: (input: {
-    title: string;
-    description?: string;
-    statusId?: number;
-  }) => Promise<boolean>;
-};
-
-export default function CreateTaskForm({
-  statuses,
-  loading,
-  error,
-  onCreateTask,
-}: CreateTaskFormProps) {
+export default function CreateTaskForm() {
+  const { statuses, creatingTask, error, createTaskItem } = useTasks();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [statusId, setStatusId] = useState<string>("");
@@ -42,7 +27,7 @@ export default function CreateTaskForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const didCreate = await onCreateTask({
+    const didCreate = await createTaskItem({
       title,
       description,
       statusId: statusId ? Number(statusId) : undefined,
@@ -70,7 +55,7 @@ export default function CreateTaskForm({
               placeholder="Task title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              disabled={loading}
+              disabled={creatingTask}
             />
           </div>
           <div className="space-y-2">
@@ -80,7 +65,7 @@ export default function CreateTaskForm({
               placeholder="Task description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              disabled={loading}
+              disabled={creatingTask}
             />
           </div>
           {statuses.length > 0 && (
@@ -89,7 +74,7 @@ export default function CreateTaskForm({
               <Select
                 value={statusId}
                 onValueChange={setStatusId}
-                disabled={loading}
+                disabled={creatingTask}
               >
                 <SelectTrigger id="status">
                   <SelectValue placeholder="Select a status (optional)" />
@@ -105,8 +90,8 @@ export default function CreateTaskForm({
             </div>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Creating..." : "Create Task"}
+          <Button type="submit" disabled={creatingTask} className="w-full">
+            {creatingTask ? "Creating..." : "Create Task"}
           </Button>
         </form>
       </CardContent>

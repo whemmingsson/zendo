@@ -1,4 +1,4 @@
-import type { TaskWithStatus } from "../../lib/taskService";
+import { useTasks } from "../../hooks/useTasks";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -9,33 +9,30 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 
-type ConfirmDeleteTaskDialogProps = {
-  task: TaskWithStatus | null;
-  onCancel: () => void;
-  onConfirm: () => void;
-};
+export default function ConfirmDeleteTaskDialog() {
+  const { taskToDelete, cancelDeleteTask, confirmDeleteTask } = useTasks();
 
-export default function ConfirmDeleteTaskDialog({
-  task,
-  onCancel,
-  onConfirm,
-}: ConfirmDeleteTaskDialogProps) {
   return (
-    <Dialog open={!!task} onOpenChange={(open) => !open && onCancel()}>
+    <Dialog
+      open={!!taskToDelete}
+      onOpenChange={(open) => !open && cancelDeleteTask()}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete task</DialogTitle>
           <DialogDescription>
             Are you sure you want to delete{" "}
-            <span className="font-medium text-foreground">"{task?.title}"</span>
+            <span className="font-medium text-foreground">
+              "{taskToDelete?.title}"
+            </span>
             ? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={cancelDeleteTask}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
+          <Button variant="destructive" onClick={confirmDeleteTask}>
             Delete
           </Button>
         </DialogFooter>

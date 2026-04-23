@@ -1,18 +1,9 @@
-import type { TaskWithStatus } from "../../lib/taskService";
+import { useTasks } from "../../hooks/useTasks";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 
-type TaskListProps = {
-  tasks: TaskWithStatus[];
-  deletingId: number | null;
-  onRequestDeleteTask: (task: TaskWithStatus) => void;
-};
-
-export default function TaskList({
-  tasks,
-  deletingId,
-  onRequestDeleteTask,
-}: TaskListProps) {
+export default function TaskList() {
+  const { tasks, deletingId, requestDeleteTask } = useTasks();
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Your Tasks</h2>
@@ -52,7 +43,7 @@ export default function TaskList({
                     variant="destructive"
                     size="sm"
                     disabled={deletingId === task.id}
-                    onClick={() => onRequestDeleteTask(task)}
+                    onClick={() => requestDeleteTask(task)}
                   >
                     {deletingId === task.id ? "Deleting..." : "Delete"}
                   </Button>

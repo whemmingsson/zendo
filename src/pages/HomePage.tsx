@@ -1,22 +1,19 @@
 import { useTasks } from "../hooks/useTasks";
+import { TasksProvider } from "../context/TasksContext";
 import CreateTaskForm from "../components/home/CreateTaskForm";
 import TaskList from "../components/home/TaskList";
 import ConfirmDeleteTaskDialog from "../components/home/ConfirmDeleteTaskDialog";
 
 export default function HomePage() {
-  const {
-    tasks,
-    statuses,
-    creatingTask,
-    deletingId,
-    taskToDelete,
-    error,
-    initialLoading,
-    createTaskItem,
-    requestDeleteTask,
-    cancelDeleteTask,
-    confirmDeleteTask,
-  } = useTasks();
+  return (
+    <TasksProvider>
+      <HomePageContent />
+    </TasksProvider>
+  );
+}
+
+function HomePageContent() {
+  const { initialLoading } = useTasks();
 
   if (initialLoading) {
     return (
@@ -29,25 +26,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-6">
-        <CreateTaskForm
-          statuses={statuses}
-          loading={creatingTask}
-          error={error}
-          onCreateTask={createTaskItem}
-        />
-
-        <TaskList
-          tasks={tasks}
-          deletingId={deletingId}
-          onRequestDeleteTask={requestDeleteTask}
-        />
+        <CreateTaskForm />
+        <TaskList />
       </div>
 
-      <ConfirmDeleteTaskDialog
-        task={taskToDelete}
-        onCancel={cancelDeleteTask}
-        onConfirm={confirmDeleteTask}
-      />
+      <ConfirmDeleteTaskDialog />
     </div>
   );
 }
