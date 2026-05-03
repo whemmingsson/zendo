@@ -12,6 +12,7 @@ import HomePage from "./pages/HomePage";
 import { supabase } from "./lib/supabase";
 import { BoardPage } from "./pages/BoardPage";
 import AdminPage from "./pages/AdminPage";
+import RegisterPage from "./pages/RegisterPage";
 
 export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
@@ -119,11 +120,7 @@ export default function App() {
         <Route
           path="/register"
           element={
-            isAuthenticated ? (
-              <Navigate to="/" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />
           }
         />
         <Route

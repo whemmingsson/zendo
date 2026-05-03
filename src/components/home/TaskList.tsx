@@ -9,7 +9,7 @@ export default function TaskList() {
       <h2 className="text-2xl font-bold">Your Tasks</h2>
       {tasks.length === 0 ? (
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <p className="text-center text-muted-foreground">
               No tasks yet. Create one to get started!
             </p>
@@ -19,7 +19,7 @@ export default function TaskList() {
         <div className="space-y-2">
           {tasks.map((task) => (
             <Card key={task.id}>
-              <CardContent className="pt-6">
+              <CardContent>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg">{task.title}</h3>
