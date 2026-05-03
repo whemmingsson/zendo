@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import { supabase } from "./lib/supabase";
 import { BoardPage } from "./pages/BoardPage";
+import AdminPage from "./pages/AdminPage";
 
 export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
@@ -49,6 +50,12 @@ export default function App() {
           path="/board"
           element={
             isAuthenticated ? <BoardPage /> : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            isAuthenticated ? <AdminPage /> : <Navigate to="/login" replace />
           }
         />
         <Route

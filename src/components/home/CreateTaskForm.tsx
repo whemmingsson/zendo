@@ -115,6 +115,10 @@ export default function CreateTaskForm() {
                       onChange={() => toggleTagSelection(tag.id)}
                       disabled={creatingTask}
                     />
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full border"
+                      style={{ backgroundColor: tag.color ?? "transparent" }}
+                    />
                     <span className="truncate">{tag.label}</span>
                   </label>
                 ))}

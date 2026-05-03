@@ -39,7 +39,19 @@ export default function TaskList() {
                           {task.tags.map((tag) => (
                             <span
                               key={tag.id}
-                              className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full"
+                              className={
+                                tag.color
+                                  ? "text-xs font-medium px-2 py-0.5 rounded-full"
+                                  : "text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full"
+                              }
+                              style={
+                                tag.color
+                                  ? {
+                                      backgroundColor: tag.color,
+                                      color: "#ffffff",
+                                    }
+                                  : undefined
+                              }
                             >
                               {tag.label}
                             </span>
