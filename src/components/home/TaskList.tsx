@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 
 export default function TaskList() {
-  const { tasks, deletingId, requestDeleteTask } = useTasks();
+  const { tasks, deletingId, requestEditTask, requestDeleteTask } = useTasks();
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Your Tasks</h2>
@@ -63,14 +63,24 @@ export default function TaskList() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={deletingId === task.id}
-                    onClick={() => requestDeleteTask(task)}
-                  >
-                    {deletingId === task.id ? "Deleting..." : "Delete"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={deletingId === task.id}
+                      onClick={() => requestEditTask(task)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={deletingId === task.id}
+                      onClick={() => requestDeleteTask(task)}
+                    >
+                      {deletingId === task.id ? "Deleting..." : "Delete"}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

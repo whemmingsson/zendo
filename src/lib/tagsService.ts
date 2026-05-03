@@ -6,6 +6,7 @@ type TagInsert = TablesInsert<"Tags">;
 type TagUpdate = TablesUpdate<"Tags">;
 
 let cache: Tag[] | null = null;
+let usageCountsCache = new Map<string, Record<number, number>>();
 
 const isNoRowsError = (code: string | undefined): boolean => {
   return code === "PGRST116";
@@ -89,6 +90,14 @@ export function invalidateTagsCache(): void {
   cache = null;
 }
 
+function getUsageCountCacheKey(tagIds: number[]): string {
+  return [...new Set(tagIds)].sort((a, b) => a - b).join(",");
+}
+
+function invalidateTagUsageCountsCache(): void {
+  usageCountsCache = new Map();
+}
+
 export async function createTag(input: {
   label: string;
   description?: string;
@@ -113,6 +122,7 @@ export async function createTag(input: {
   }
 
   invalidateTagsCache();
+  invalidateTagUsageCountsCache();
   return data;
 }
 
@@ -156,20 +166,52 @@ export async function updateTag(
   }
 
   invalidateTagsCache();
+  invalidateTagUsageCountsCache();
   return data;
 }
 
 export async function getTagUsageCount(tagId: number): Promise<number> {
-  const { count, error } = await supabase
-    .from("Tasks_Tags")
-    .select("*", { count: "exact", head: true })
-    .eq("tag_id", tagId);
+  const counts = await getTagUsageCounts([tagId]);
+  return counts[tagId] ?? 0;
+}
 
-  if (error) {
-    throw new Error(`Failed to count tag usage: ${error.message}`);
+export async function getTagUsageCounts(
+  tagIds: number[],
+): Promise<Record<number, number>> {
+  const normalizedTagIds = [...new Set(tagIds)];
+
+  if (normalizedTagIds.length === 0) {
+    return {};
   }
 
-  return count ?? 0;
+  const cacheKey = getUsageCountCacheKey(normalizedTagIds);
+
+  const cached = usageCountsCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const { data, error } = await supabase
+    .from("Tasks_Tags")
+    .select("tag_id")
+    .in("tag_id", normalizedTagIds);
+
+  if (error) {
+    throw new Error(`Failed to fetch tag usage counts: ${error.message}`);
+  }
+
+  const counts: Record<number, number> = {};
+
+  for (const tagId of normalizedTagIds) {
+    counts[tagId] = 0;
+  }
+
+  for (const relation of data) {
+    counts[relation.tag_id] = (counts[relation.tag_id] ?? 0) + 1;
+  }
+
+  usageCountsCache.set(cacheKey, counts);
+  return counts;
 }
 
 export async function deleteTag(tagId: number): Promise<void> {
@@ -194,4 +236,5 @@ export async function deleteTag(tagId: number): Promise<void> {
   }
 
   invalidateTagsCache();
+  invalidateTagUsageCountsCache();
 }

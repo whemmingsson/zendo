@@ -3,6 +3,7 @@ import {
   createTask,
   deleteTask,
   getUserTasks,
+  updateTask,
   updateTaskStatus,
   withRecomputedPriorities,
 } from "../lib/taskService";
@@ -24,11 +25,16 @@ type TasksContextValue = {
   statuses: Status[];
   tags: Tag[];
   creatingTask: boolean;
+  updatingTask: boolean;
   deletingId: number | null;
   taskToDelete: TaskWithStatus | null;
+  taskToEdit: TaskWithStatus | null;
   error: string | null;
   initialLoading: boolean;
   createTaskItem: (input: CreateTaskInput) => Promise<boolean>;
+  updateTaskItem: (taskId: number, input: CreateTaskInput) => Promise<boolean>;
+  requestEditTask: (task: TaskWithStatus) => void;
+  cancelEditTask: () => void;
   requestDeleteTask: (task: TaskWithStatus) => void;
   cancelDeleteTask: () => void;
   confirmDeleteTask: () => Promise<void>;
@@ -50,8 +56,10 @@ export function TasksProvider({ children }: TasksProviderProps) {
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [creatingTask, setCreatingTask] = useState(false);
+  const [updatingTask, setUpdatingTask] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<TaskWithStatus | null>(null);
+  const [taskToEdit, setTaskToEdit] = useState<TaskWithStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -105,6 +113,50 @@ export function TasksProvider({ children }: TasksProviderProps) {
     } finally {
       setCreatingTask(false);
     }
+  };
+
+  const updateTaskItem = async (
+    taskId: number,
+    input: CreateTaskInput,
+  ): Promise<boolean> => {
+    setError(null);
+
+    if (!input.title.trim()) {
+      setError("Title is required");
+      return false;
+    }
+
+    setUpdatingTask(true);
+    try {
+      const updatedTask = await updateTask(
+        taskId,
+        input.title,
+        input.description,
+        input.statusId,
+        input.tagIds,
+      );
+
+      setTasks((prev) =>
+        withRecomputedPriorities(
+          prev.map((task) => (task.id === taskId ? updatedTask : task)),
+        ),
+      );
+      setTaskToEdit(null);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update task");
+      return false;
+    } finally {
+      setUpdatingTask(false);
+    }
+  };
+
+  const requestEditTask = (task: TaskWithStatus) => {
+    setTaskToEdit(task);
+  };
+
+  const cancelEditTask = () => {
+    setTaskToEdit(null);
   };
 
   const requestDeleteTask = (task: TaskWithStatus) => {
@@ -168,11 +220,16 @@ export function TasksProvider({ children }: TasksProviderProps) {
         statuses,
         tags,
         creatingTask,
+        updatingTask,
         deletingId,
         taskToDelete,
+        taskToEdit,
         error,
         initialLoading,
         createTaskItem,
+        updateTaskItem,
+        requestEditTask,
+        cancelEditTask,
         requestDeleteTask,
         cancelDeleteTask,
         confirmDeleteTask,

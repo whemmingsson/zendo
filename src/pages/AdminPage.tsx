@@ -19,7 +19,7 @@ import {
 import {
   createTag,
   deleteTag,
-  getTagUsageCount,
+  getTagUsageCounts,
   getTags,
   isCurrentUserAdmin,
   type Tag,
@@ -57,13 +57,8 @@ export default function AdminPage() {
     const allTags = await getTags();
     setTags(allTags);
 
-    const usageEntries = await Promise.all(
-      allTags.map(
-        async (tag) => [tag.id, await getTagUsageCount(tag.id)] as const,
-      ),
-    );
-
-    setUsageByTagId(Object.fromEntries(usageEntries));
+    const usageCounts = await getTagUsageCounts(allTags.map((tag) => tag.id));
+    setUsageByTagId(usageCounts);
   };
 
   useEffect(() => {

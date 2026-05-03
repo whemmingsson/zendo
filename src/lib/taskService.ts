@@ -248,6 +248,78 @@ export const updateTaskStatus = async (
 };
 
 /**
+ * Update task fields and tag associations by ID (only if it belongs to the authenticated user)
+ */
+export const updateTask = async (
+  taskId: number,
+  title: string,
+  description?: string,
+  statusId?: number,
+  tagIds?: number[],
+): Promise<TaskWithStatus> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("User must be authenticated to update a task");
+  }
+
+  const { data, error } = await supabase
+    .from("Tasks")
+    .update({
+      title,
+      description: description?.trim() ? description.trim() : null,
+      status_id: statusId ?? null,
+    })
+    .eq("id", taskId)
+    .eq("user_id", user.id)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to update task: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Failed to update task: task not found");
+  }
+
+  const { error: deleteTaskTagsError } = await supabase
+    .from("Tasks_Tags")
+    .delete()
+    .eq("task_id", taskId);
+
+  if (deleteTaskTagsError) {
+    throw new Error(
+      `Failed to update task tags: ${deleteTaskTagsError.message}`,
+    );
+  }
+
+  const uniqueTagIds = [...new Set(tagIds ?? [])];
+  if (uniqueTagIds.length > 0) {
+    const { error: insertTaskTagsError } = await supabase
+      .from("Tasks_Tags")
+      .insert(
+        uniqueTagIds.map((tagId) => ({ task_id: taskId, tag_id: tagId })),
+      );
+
+    if (insertTaskTagsError) {
+      throw new Error(
+        `Failed to update task tags: ${insertTaskTagsError.message}`,
+      );
+    }
+  }
+
+  const [statuses, tags] = await Promise.all([
+    getCachedStatuses(),
+    getCachedTags(),
+  ]);
+  const taskTagsMap = await getTaskTagsMap([data.id], tags);
+  return enrichTask(data, statuses, taskTagsMap);
+};
+
+/**
  * Delete a task by ID (only if it belongs to the authenticated user)
  */
 export const deleteTask = async (taskId: number): Promise<void> => {
