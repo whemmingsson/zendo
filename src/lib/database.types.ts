@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      Admins: {
+        Row: {
+          user_id: string
+        }
+        Insert: {
+          user_id: string
+        }
+        Update: {
+          user_id?: string
+        }
+        Relationships: []
+      }
       Statuses: {
         Row: {
           created_at: string
@@ -34,18 +46,21 @@ export type Database = {
       }
       Tags: {
         Row: {
+          color: string | null
           created_at: string
           description: string | null
           id: number
           label: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: number
           label: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: number
