@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  NavLink,
+  Route,
+  Routes,
+} from "react-router-dom";
 import "./App.css";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
@@ -39,6 +45,52 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      {isAuthenticated && (
+        <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
+          <nav className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                [
+                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                ].join(" ")
+              }
+            >
+              Home
+            </NavLink>
+            <NavLink
+              to="/board"
+              className={({ isActive }) =>
+                [
+                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                ].join(" ")
+              }
+            >
+              Board
+            </NavLink>
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                [
+                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                ].join(" ")
+              }
+            >
+              Admin
+            </NavLink>
+          </nav>
+        </header>
+      )}
       <Routes>
         <Route
           path="/"
