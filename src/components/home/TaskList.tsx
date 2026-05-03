@@ -34,6 +34,18 @@ export default function TaskList() {
                           {task.status.label}
                         </span>
                       )}
+                      {task.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {task.tags.map((tag) => (
+                            <span
+                              key={tag.id}
+                              className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full"
+                            >
+                              {tag.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {new Date(task.created_at).toLocaleDateString()}
                       </p>

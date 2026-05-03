@@ -32,6 +32,27 @@ export type Database = {
         }
         Relationships: []
       }
+      Tags: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          label: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          label: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          label?: string
+        }
+        Relationships: []
+      }
       Tasks: {
         Row: {
           created_at: string
@@ -66,6 +87,36 @@ export type Database = {
             columns: ["status_id"]
             isOneToOne: false
             referencedRelation: "Statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Tasks_Tags: {
+        Row: {
+          tag_id: number
+          task_id: number
+        }
+        Insert: {
+          tag_id: number
+          task_id: number
+        }
+        Update: {
+          tag_id?: number
+          task_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Tasks_Tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "Tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Tasks_Tags_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "Tasks"
             referencedColumns: ["id"]
           },
         ]

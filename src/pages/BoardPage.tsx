@@ -490,6 +490,18 @@ function TaskCard({
             {task.description}
           </p>
         )}
+        {task.tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1">
+            {task.tags.map((tag) => (
+              <span
+                key={tag.id}
+                className="text-[10px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full"
+              >
+                {tag.label}
+              </span>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

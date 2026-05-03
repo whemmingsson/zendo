@@ -2,20 +2,63 @@ import { supabase } from "./supabase";
 import type { Tables, TablesInsert } from "./database.types";
 import { getCachedStatuses } from "./statusService";
 import type { Status } from "./statusService";
+import { getCachedTags } from "./tagsService";
+import type { Tag } from "./tagsService";
 
 type Task = Tables<"Tasks">;
 type TaskInsert = TablesInsert<"Tasks">;
+type TaskTag = Tables<"Tasks_Tags">;
 
 export type TaskWithStatus = Omit<Task, "status_id"> & {
   status: Status | null;
+  tags: Tag[];
   priority: number;
 };
 
-const enrichWithStatus = (task: Task, statuses: Status[]): TaskWithStatus => {
+const getTaskTagsMap = async (
+  taskIds: number[],
+  tags: Tag[],
+): Promise<Map<number, Tag[]>> => {
+  if (taskIds.length === 0) {
+    return new Map();
+  }
+
+  const { data: taskTagsData, error: taskTagsError } = await supabase
+    .from("Tasks_Tags")
+    .select("*")
+    .in("task_id", taskIds);
+
+  if (taskTagsError) {
+    throw new Error(`Failed to fetch task tags: ${taskTagsError.message}`);
+  }
+
+  const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
+  const taskTagsMap = new Map<number, Tag[]>();
+
+  for (const relation of taskTagsData as TaskTag[]) {
+    const tag = tagsById.get(relation.tag_id);
+    if (!tag) {
+      continue;
+    }
+
+    const existingTags = taskTagsMap.get(relation.task_id) ?? [];
+    existingTags.push(tag);
+    taskTagsMap.set(relation.task_id, existingTags);
+  }
+
+  return taskTagsMap;
+};
+
+const enrichTask = (
+  task: Task,
+  statuses: Status[],
+  taskTagsMap: Map<number, Tag[]>,
+): TaskWithStatus => {
   const { status_id, ...rest } = task;
   return {
     ...rest,
     status: statuses.find((s) => s.id === status_id) ?? null,
+    tags: taskTagsMap.get(task.id) ?? [],
     priority: 0,
   };
 };
@@ -49,6 +92,7 @@ export const createTask = async (
   title: string,
   description?: string,
   statusId?: number,
+  tagIds?: number[],
 ): Promise<TaskWithStatus | null> => {
   const {
     data: { user },
@@ -75,8 +119,38 @@ export const createTask = async (
     throw new Error(`Failed to create task: ${error.message}`);
   }
 
-  const statuses = await getCachedStatuses();
-  return enrichWithStatus(data, statuses);
+  const uniqueTagIds = [...new Set(tagIds ?? [])];
+  if (uniqueTagIds.length > 0) {
+    const { error: taskTagsError } = await supabase
+      .from("Tasks_Tags")
+      .insert(
+        uniqueTagIds.map((tagId) => ({ task_id: data.id, tag_id: tagId })),
+      );
+
+    if (taskTagsError) {
+      throw new Error(
+        `Failed to assign tags to task: ${taskTagsError.message}`,
+      );
+    }
+  }
+
+  const [statuses, tags] = await Promise.all([
+    getCachedStatuses(),
+    getCachedTags(),
+  ]);
+  const taskTagsMap = new Map<number, Tag[]>();
+
+  if (uniqueTagIds.length > 0) {
+    const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
+    taskTagsMap.set(
+      data.id,
+      uniqueTagIds
+        .map((tagId) => tagsById.get(tagId))
+        .filter((tag): tag is Tag => !!tag),
+    );
+  }
+
+  return enrichTask(data, statuses, taskTagsMap);
 };
 
 /**
@@ -91,21 +165,27 @@ export const getUserTasks = async (): Promise<TaskWithStatus[]> => {
     throw new Error("User must be authenticated to fetch tasks");
   }
 
-  const [{ data, error }, statuses] = await Promise.all([
+  const [{ data, error }, statuses, tags] = await Promise.all([
     supabase
       .from("Tasks")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     getCachedStatuses(),
+    getCachedTags(),
   ]);
 
   if (error) {
     throw new Error(`Failed to fetch tasks: ${error.message}`);
   }
 
+  const taskTagsMap = await getTaskTagsMap(
+    data.map((task) => task.id),
+    tags,
+  );
+
   return withRecomputedPriorities(
-    data.map((task) => enrichWithStatus(task, statuses)),
+    data.map((task) => enrichTask(task, statuses, taskTagsMap)),
   );
 };
 
@@ -159,8 +239,12 @@ export const updateTaskStatus = async (
     );
   }
 
-  const statuses = await getCachedStatuses();
-  return enrichWithStatus(data, statuses);
+  const [statuses, tags] = await Promise.all([
+    getCachedStatuses(),
+    getCachedTags(),
+  ]);
+  const taskTagsMap = await getTaskTagsMap([data.id], tags);
+  return enrichTask(data, statuses, taskTagsMap);
 };
 
 /**

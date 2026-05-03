@@ -9,16 +9,20 @@ import {
 import type { TaskWithStatus } from "../lib/taskService";
 import { getCachedStatuses } from "../lib/statusService";
 import type { Status } from "../lib/statusService";
+import { getCachedTags } from "../lib/tagsService";
+import type { Tag } from "../lib/tagsService";
 
 type CreateTaskInput = {
   title: string;
   description?: string;
   statusId?: number;
+  tagIds?: number[];
 };
 
 type TasksContextValue = {
   tasks: TaskWithStatus[];
   statuses: Status[];
+  tags: Tag[];
   creatingTask: boolean;
   deletingId: number | null;
   taskToDelete: TaskWithStatus | null;
@@ -44,6 +48,7 @@ type TasksProviderProps = {
 export function TasksProvider({ children }: TasksProviderProps) {
   const [tasks, setTasks] = useState<TaskWithStatus[]>([]);
   const [statuses, setStatuses] = useState<Status[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [creatingTask, setCreatingTask] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<TaskWithStatus | null>(null);
@@ -53,13 +58,15 @@ export function TasksProvider({ children }: TasksProviderProps) {
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        const [userTasks, allStatuses] = await Promise.all([
+        const [userTasks, allStatuses, allTags] = await Promise.all([
           getUserTasks(),
           getCachedStatuses(),
+          getCachedTags(),
         ]);
 
         setTasks(withRecomputedPriorities(userTasks));
         setStatuses(allStatuses);
+        setTags(allTags);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load tasks");
       } finally {
@@ -84,6 +91,7 @@ export function TasksProvider({ children }: TasksProviderProps) {
         input.title,
         input.description,
         input.statusId,
+        input.tagIds,
       );
 
       if (newTask) {
@@ -158,6 +166,7 @@ export function TasksProvider({ children }: TasksProviderProps) {
       value={{
         tasks,
         statuses,
+        tags,
         creatingTask,
         deletingId,
         taskToDelete,
